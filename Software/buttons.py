@@ -17,12 +17,12 @@ LCD_D7 = Pin(22, Pin.OUT)
 
 # Pin definitions
 BUTTON_PAUZE = Pin(2, Pin.IN, Pin.PULL_UP) # Start / Pauze
-BUTTON_2 = Pin(3, Pin.IN, Pin.PULL_UP) # DOWN
-BUTTON_3 = Pin(4, Pin.IN, Pin.PULL_UP) # WHITE
-BUTTON_4 = Pin(5, Pin.IN, Pin.PULL_UP) # RED
-BUTTON_5 = Pin(6, Pin.IN, Pin.PULL_UP) # GREEN
+BUTTON_2     = Pin(3, Pin.IN, Pin.PULL_UP) # DOWN
+BUTTON_3     = Pin(4, Pin.IN, Pin.PULL_UP) # WHITE
+BUTTON_4     = Pin(5, Pin.IN, Pin.PULL_UP) # RED
+BUTTON_5     = Pin(6, Pin.IN, Pin.PULL_UP) # GREEN
 
-SWITCH_SHOW = Pin(11, Pin.IN, Pin.PULL_DOWN) # SHOW TIME OR ROUNDS
+SWITCH_SHOW  = Pin(11, Pin.IN, Pin.PULL_DOWN) # SHOW TIME OR ROUNDS
 SWITCH_START = Pin(12, Pin.IN, Pin.PULL_DOWN) # START / STOP TIME
 
 #encoder button time
@@ -30,49 +30,32 @@ ENCODER_1_A = Pin(7, Pin.IN, Pin.PULL_DOWN) # Time
 ENCODER_1_B = Pin(8, Pin.IN, Pin.PULL_DOWN) 
 
 #encoder button rounds
-ENCODER_2_A = Pin(9, Pin.IN, Pin.PULL_DOWN) # Rounds
+ENCODER_2_A = Pin(9,  Pin.IN, Pin.PULL_DOWN) # Rounds
 ENCODER_2_B = Pin(10, Pin.IN, Pin.PULL_DOWN)
-
-buttonAction = { BUTTON_PAUZE: changeModePauze,
-                 BUTTON_2: decreaseRound,
-                 BUTTON_3: setColorWhite,
-                 BUTTON_4: setColorRed,
-                 BUTTON_5: setColorBlue,
-                 SWITCH_SHOW: setToggleShow,
-                 SWITCH_START: toggleStartStop
-                }
 
 VALUE = 1
 PIN2 = 2
 MIN_VALUE = 3
 MAX_VALUE = 4
 SET_VALUE = 5
-encoderPin = { ENCODER_1_A: {PIN2 : ENCODER_1_B,
-                              VALUE : 90,
-                              SET_VALUE: 90,
-                              MIN_VALUE : 0,
-                              MAX_VALUE : 99},
-               ENCODER_2_A: {PIN2: ENCODER_2_B,
-                              VALUE : 3,
-                              SET_VALUE: 3,
-                              MIN_VALUE : 0,
-                              MAX_VALUE : 99},
-             }
 
-modesPauze = False
+ENCODER_1 = 1
+ENCODER_2 = 2
+
+_modesPauze = False
 def changeModePauze():
-    if not modesStart:
+    if not _modesStart:
         return
-    global modesPauze
-    modesPauze = not modesPauze
+    global _modesPauze
+    _modesPauze = not _modesPauze
     updateDisplays()
 
-modesStart = False
-def toggleStartStop:
-    global modesStart, modesPauze
-    modesPauze = False
-    modesStart = not modesStart
-    if modesStart:
+_modesStart = False
+def toggleStartStop():
+    global _modesStart, _modesPauze
+    _modesPauze = False
+    _modesStart = not _modesStart
+    if _modesStart:
         global start_time
         start_time = uTime.time()
     encoderPin[ENCODER_1_A][VALUE] = encoderPin[ENCODER_1_A][SET_VALUE]
@@ -129,7 +112,23 @@ def read_encoder(pin1):
     
 # Interrupt service routine for button presses
 def button_isr(pin):
-    buttonAction[pin]()
+    print(pin)
+    #buttonAction[pin]()
+
+encoderPin = { ENCODER_1:  {PIN2      : ENCODER_1_B,
+                              VALUE     : 90,
+                              SET_VALUE : 90,                             
+                              MIN_VALUE : 0,
+                              MAX_VALUE : 99},
+               ENCODER_2:  {PIN2      : ENCODER_2_B,
+                              VALUE     : 3,
+                              SET_VALUE : 3,
+                              MIN_VALUE : 0,
+                              MAX_VALUE : 99}
+             }
+
+buttons = (BUTTON_PAUZE, BUTTON_2, BUTTON_3, BUTTON_4, BUTTON_5, SWITCH_SHOW, SWITCH_START)
+buttonAction = (changeModePauze,decreaseRound,setColorWhite,setColorRed,setColorBlue,toggleStartStop)
 
 # Attach interrupt handlers to buttons
 BUTTON_PAUZE.irq(trigger=Pin.IRQ_FALLING, handler=button_isr)
@@ -156,16 +155,16 @@ def updateDisplays():
     showOnLcd("Time left: %d s" % value)
         
 # Define interrupt timer function
-prev_time = uTime.time()
+_prev_time = uTime.time()
 def timer_callback(timer):
-    global prev_time
+    global _prev_time
     time = uTime.time()
-    if modesPauze or not modesStart:
-        prev_time = time
+    if _modesPauze or not _modesStart:
+        _prev_time = time
         return
     dt = (time - prev_time) // 60 # 
     if dt >= 1:
-        prev_time = time
+        _prev_time = time
         encoderPin[ENCODER_1_A][VALUE] -= dt
     
     updateDisplays()
