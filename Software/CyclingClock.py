@@ -1,15 +1,15 @@
 import machine
 import sys
-sys.path.append('../Libraries/NeoPixel')
 sys.path.append('../Libraries/General')
-sys.path.append('../Libraries/LCD')
 sys.path.append('../Libraries/Buttons')
 
-from machine import I2C, Pin
-from pico_i2c_lcd import I2cLcd
+from machine import Pin
 from utime import sleep
 import utime
 from IRQButton import IRQButton
+import Config
+import LCDDisplay
+import MatrixBoard
 
 from RoterySwitch import RoterySwitch
 from ValueSelector import ValueSelector
@@ -17,30 +17,9 @@ from ListSelector import ListSelector
 
 #../Libraries/General
 import colorHelper
-import matrix_16x24 as matrix
-import matrixHelper
-import matrixArt
 
-#../Libraries/NeoPixel
-from myNeoPixel import myNeoPixel
-
-TIME_INTERVAL = 10 #should be 60
+TIME_INTERVAL = 60 #should be 60
 CLOCK_UPDATE_INTERVAL = 1000
-LCD_WIDTH = 20
-
-BUTTON_1 = 22
-BUTTON_2 = 26
-BUTTON_3 = 27
-BUTTON_RED		= 21
-BUTTON_WHITE		= 20
-BUTTON_GREEN		= 19
-BUTTON_BLUE		= 18
-ENCODER_1A      = 14
-ENCODER_1B      = 15
-ENCODER_2A      = 12
-ENCODER_2B      = 13
-ENCODER_3A      = 10
-ENCODER_3B      = 11
 
 def infoColorSelector():
     updateDisplays()
@@ -59,142 +38,77 @@ lst = (COLOR_RED, COLOR_BLUE, COLOR_GREEN, COLOR_WHITE)
 names = ("Rood", "Blauw", "Groen", "Wit")
 colorSelector = ListSelector( lst, names, infoColorSelector, infoColorSelector )
 
-timeSelector   = ValueSelector(0, 99, 90, infoTime, infoTime)
+timeSelector   = ValueSelector(0, 99, 80, infoTime, infoTime)
 roundsSelector = ValueSelector(0, 99, 3, infoRounds, infoRounds)
 
+buzzer = Pin(Config.PIN_16, Pin.OUT)
+
 def pressRed():
-    global _currentMode
-    roundsSelector.setAccepted(roundsSelector.getSelected())
-    if _currentMode == TIME:
-        _currentMode = PAUSE
-        updateLCDSeconds()
-    elif _currentMode == ROUND:
-        _currentMode = TIME
-    else:
-        _currentMode = TIME
-    updateDisplays()
-    
-def pressWhite():
-    global _currentMode
-    if _currentMode == TIME or _currentMode == PAUSE:
-        _currentMode = ROUND
-    elif _currentMode == ROUND:
-        roundsSelector.setAccepted(roundsSelector.getAccepted() - 1)
-    updateDisplays()
-    
+    while buttonRed.value() == 0:
+        sleep(0.3)
+    roundsSelector.setAccepted(roundsSelector.getSelected() )
+
 def pressGreen():
-    print("Green, not implemented yet")
-def pressBlue():
-    print("Blue, not implemented yet")
+    while buttonGreen.value() == 0:
+        sleep(0.3)
+    print("Green")
+    roundsSelector.setAccepted(roundsSelector.getAccepted() - 1 )
     
-buttonRed   = IRQButton(BUTTON_RED, pressRed)
-buttonWhite = IRQButton(BUTTON_WHITE, pressWhite)
-buttonGreen = IRQButton(BUTTON_GREEN, pressGreen)
-buttonBlue  = IRQButton(BUTTON_BLUE, pressBlue)
+def pressBlue():
+    beep(3)
 
-colorChanger    = RoterySwitch(ENCODER_1A, ENCODER_1B, colorSelector.getPrev, colorSelector.getNext, BUTTON_1, colorSelector.accept)
-#timeChanger     = RoterySwitch(ENCODER_2A, ENCODER_2B, time.getPrev, time.getNext, BUTTON_2, time.accept)
-#roundsChanger   = RoterySwitch(ENCODER_3A, ENCODER_3B, rounds.getPrev, rounds.getNext, BUTTON_3, rounds.accept)
+def pressTimeRound(data):
+    setCurrentMode()
+    updateDisplays()
+    
+def beep(numberOfBeeps = 1, timeInSeconds = 1):
+    while numberOfBeeps > 0:
+        sleep(timeInSeconds)
+        buzzer.high()
+        sleep(timeInSeconds)
+        buzzer.low()
+        numberOfBeeps -= 1
+        
+buttonTime  = IRQButton(Config.PIN_26,  pressTimeRound, 1)
+buttonRound = IRQButton(Config.PIN_27, pressTimeRound, 2)
 
-PAUSE = 0
-TIME = 1
-ROUND = 2
-_modeDict = {PAUSE: "Pauze",
-             TIME: "Time",
-             ROUND: "Round"
-             }
+buttonRed   = IRQButton(Config.PIN_04, pressRed)
+buttonGreen = IRQButton(Config.PIN_03, pressGreen)
+buttonBlue  = IRQButton(Config.PIN_02, pressBlue)
 
-_currentMode = PAUSE
+timeChanger     = RoterySwitch(Config.PIN_06, Config.PIN_07, timeSelector.getNext, timeSelector.getPrev, Config.PIN_05, timeSelector.accept)
+roundsChanger   = RoterySwitch(Config.PIN_09, Config.PIN_10, roundsSelector.getNext, roundsSelector.getPrev, Config.PIN_08, roundsSelector.accept)
+colorChanger    = RoterySwitch(Config.PIN_12, Config.PIN_13, colorSelector.getNext, colorSelector.getPrev, Config.PIN_11, colorSelector.accept)
 
-i2c = I2C(0, sda=Pin(0), scl=Pin(1), freq=400000)
-I2C_ADDR = i2c.scan()[0]
-print("LCD i2c address :", I2C_ADDR)
-lcd = I2cLcd(i2c, I2C_ADDR, 4, LCD_WIDTH)
-lcd.clear()
-lcd.hide_cursor()
+_currentMode = Config.PAUSE
+def setCurrentMode():
+    global _currentMode
+    roundSelected = buttonRound.value() == 0
+    timeSelected = buttonTime.value() == 0
+    if timeSelected:
+        _currentMode = Config.ROUND
+    elif roundSelected:
+        _currentMode = Config.TIME
+    else:
+        _currentMode = Config.PAUSE
 
 def updateDisplays():
-    updateLCD()
-    updateMatrix()
-
-def updateMatrix():
-    if _currentMode == PAUSE:
-        matrixPause = matrixHelper.tuple2Matrix(matrixArt.PAUSE_32x32)        
-        matrixHelper.lowerColorIntensity(matrixPause, 0.2)
-        np.showMatrix(matrixPause)
-        return
+    txtMode = Config.MODEDICT[_currentMode]
+    acceptedRound = roundsSelector.getAccepted()
+    selectedRound = roundsSelector.getSelected()
+    acceptedTime  = timeSelector.getAccepted()
+    selectedTime  = timeSelector.getSelected()
+    acceptedColor = colorSelector.getAcceptedName()
+    selectedColor = colorSelector.getSelectedName()
+    LCDDisplay.updateLCD(acceptedRound, selectedRound, acceptedTime, selectedTime, acceptedColor, selectedColor, txtMode )
     
-    if _currentMode == TIME:
+    color = colorSelector.getAccepted()
+    txt = ""
+    if _currentMode == Config.TIME:
         txt = timeSelector.getAcceptedName()
-    elif _currentMode == ROUND:
+    elif _currentMode == Config.ROUND:
         txt = roundsSelector.getAcceptedName()
-    else:          
-        txt = ""
-        
-    listMatrix = matrixHelper.elementsToMatrix(txt, matrix.MATRIX)
-    completeMatrix1 = matrixHelper.appendMatrixHorizontal(listMatrix, 2)
-    completeMatrix1 = matrixHelper.alignHorizontal(completeMatrix1, 32, 1)
-    completeMatrix1 = matrixHelper.alignVertical(completeMatrix1, 32, 1)
-    matrixHelper.changeColor(completeMatrix1, 1, colorSelector.getAccepted())
-    np.showMatrix(completeMatrix1)
-    
-def welcomeNeoPixels():
-    np.openingBox()
-    
-def welcomeLCD():
-    lcd.clear()
-    lcd.move_to(0, 0)
-    lcd.putstr("DRC de Mol".center(LCD_WIDTH))
-    lcd.move_to(0, 1)
-    lcd.putstr("Cycling clock".center(LCD_WIDTH))
-    lcd.move_to(0, 2)
-    lcd.putstr("(c) 2023".center(LCD_WIDTH))
-    lcd.move_to(0, 3)
-    lcd.putstr("Arjan Kamberg".center(LCD_WIDTH))
-    
-def initLCD():
-    lcd.clear()
-    lcd.move_to(0, 0)
-    lcd.putstr(f"Time  : ")
-    lcd.move_to(0, 1)
-    lcd.putstr(f"Round : ")
-    lcd.move_to(0, 2)
-    lcd.putstr(f"Color : ")
-    lcd.move_to(0, 3)
-    lcd.putstr(f"Show  : ")
-    
-def updateLCD():
-    lcd.move_to(8, 0)
-    lcd.putstr(f"{timeSelector.getAccepted():<5}/{timeSelector.getSelected():>6}")
-    lcd.move_to(8, 1)
-    lcd.putstr(f"{roundsSelector.getAccepted():<5}/{roundsSelector.getSelected():>6}")
-    lcd.move_to(8, 2)
-    lcd.putstr(f"{colorSelector.getAcceptedName():<5}/{colorSelector.getSelectedName():>6}")
-    lcd.move_to(8, 3)
-    lcd.putstr(f"{_modeDict[_currentMode]:<9}")
-    
-def updateLCDSeconds():
-    lcd.move_to(18, 3)
-    if _currentMode == PAUSE:
-        lcd.putstr("  ")
-    elif _currentTime % 2 == 0:
-        lcd.putstr(". ")
-    else:
-        lcd.putstr(" .")
-    
-def neoPixel32x32Indexer(self, x, y):
-    if y < 8:
-        if (x % 2 == 1): #oneven
-            return 255 - (x * 8) - y
-        return 255 - ((x + 1) * 8)  + 1 + y
-    if y < 16:
-        return 256 + self.getIndex(x, y-8)
-    if y < 24:
-        return 512 + self.getIndex(x, y-16)
-    #inv: y >= 24
-    return 768 + self.getIndex(x, y-24)
-
-np = myNeoPixel(32,32, neoPixel32x32Indexer)
+    MatrixBoard.updateMatrix(_currentMode, color, txt)
 
 # Define interrupt timer function
 _prevTime    = utime.time()
@@ -202,31 +116,31 @@ _currentTime = utime.time()
 def timer_callback(timer):
     global _prevTime, _currentTime, _currentMode
     _currentTime = utime.time()
-    if _currentMode == PAUSE:
+    LCDDisplay.updateLCDSeconds(_currentMode, _currentTime)
+    if _currentMode == Config.PAUSE:
         _prevTime = _currentTime
         return
+    
     dt = (_currentTime - _prevTime) // TIME_INTERVAL # There can be a slight difference because we reset the time every time
-    if dt >= 1:
-        _prevTime = _currentTime
-        newValue = timeSelector.getAccepted() - dt
-        timeSelector.setAccepted(newValue)
-        print()
-        
-    if _currentMode == TIME and timeSelector.getAccepted() == 0:
-        _currentMode = PAUSE
+    if dt == 0:
+        return
+    _prevTime = _currentTime
+    newValue = timeSelector.getAccepted() - dt
+    timeSelector.setAccepted(newValue)
     
-    updateLCDSeconds()
-    
+LCDDisplay.welcomeLCD()
+MatrixBoard.welcomeNeoPixels()
+
+LCDDisplay.initLCD()
+
 timer = machine.Timer()
+setCurrentMode()
 timer.init(period=CLOCK_UPDATE_INTERVAL, mode=machine.Timer.PERIODIC, callback=timer_callback)
-
-welcomeLCD()
-welcomeNeoPixels()
-
-initLCD()
 updateDisplays()
+
 # Main loop
 while True:
     machine.idle() # Delay to prevent excessive CPU usage
     
+
 
