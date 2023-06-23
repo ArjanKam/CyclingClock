@@ -31,9 +31,9 @@ def infoRounds():
 
 #init colorSelector
 COLOR_WHITE = (50, 50,  50)
-COLOR_RED   = (150,  0,  0)
-COLOR_BLUE  = (  0,  0,150)
-COLOR_GREEN = (  0,150,  0)
+COLOR_RED   = (100,  0,  0)
+COLOR_BLUE  = (  0,  0,100)
+COLOR_GREEN = (  0,100,  0)
 lst = (COLOR_RED, COLOR_BLUE, COLOR_GREEN, COLOR_WHITE)
 names = ("Rood", "Blauw", "Groen", "Wit")
 colorSelector = ListSelector( lst, names, infoColorSelector, infoColorSelector )
@@ -51,13 +51,13 @@ def pressRed():
 def pressGreen():
     while buttonGreen.value() == 0:
         sleep(0.3)
-    print("Green")
     roundsSelector.setAccepted(roundsSelector.getAccepted() - 1 )
     
 def pressBlue():
     beep(3)
 
 def pressTimeRound(data):
+    print(f"pressTimeRound({data})")
     setCurrentMode()
     updateDisplays()
     
@@ -69,16 +69,16 @@ def beep(numberOfBeeps = 1, timeInSeconds = 1):
         buzzer.low()
         numberOfBeeps -= 1
         
-buttonTime  = IRQButton(Config.PIN_26,  pressTimeRound, 1)
-buttonRound = IRQButton(Config.PIN_27, pressTimeRound, 2)
+buttonTime  = IRQButton(Config.PIN_26,  pressTimeRound, 1, notifyAllChanges = True)
+buttonRound = IRQButton(Config.PIN_27, pressTimeRound, 2, notifyAllChanges = True)
 
 buttonRed   = IRQButton(Config.PIN_04, pressRed)
 buttonGreen = IRQButton(Config.PIN_03, pressGreen)
 buttonBlue  = IRQButton(Config.PIN_02, pressBlue)
 
-timeChanger     = RoterySwitch(Config.PIN_06, Config.PIN_07, timeSelector.getNext, timeSelector.getPrev, Config.PIN_05, timeSelector.accept)
-roundsChanger   = RoterySwitch(Config.PIN_09, Config.PIN_10, roundsSelector.getNext, roundsSelector.getPrev, Config.PIN_08, roundsSelector.accept)
-colorChanger    = RoterySwitch(Config.PIN_12, Config.PIN_13, colorSelector.getNext, colorSelector.getPrev, Config.PIN_11, colorSelector.accept)
+timeChanger     = RoterySwitch(Config.PIN_06, Config.PIN_07, timeSelector.getPrev, timeSelector.getNext, Config.PIN_05, timeSelector.accept)
+roundsChanger   = RoterySwitch(Config.PIN_09, Config.PIN_10, roundsSelector.getPrev, roundsSelector.getNext, Config.PIN_08, roundsSelector.accept)
+colorChanger    = RoterySwitch(Config.PIN_12, Config.PIN_13, colorSelector.getPrev, colorSelector.getNext, Config.PIN_11, colorSelector.accept)
 
 _currentMode = Config.PAUSE
 def setCurrentMode():
@@ -127,17 +127,17 @@ def timer_callback(timer):
     _prevTime = _currentTime
     newValue = timeSelector.getAccepted() - dt
     timeSelector.setAccepted(newValue)
-    
-LCDDisplay.welcomeLCD()
-MatrixBoard.welcomeNeoPixels()
 
-LCDDisplay.initLCD()
+def startDisplays():
+    LCDDisplay.welcomeLCD()
+    MatrixBoard.welcomeNeoPixels()
+    LCDDisplay.initLCD()
+    setCurrentMode()
+    updateDisplays()
+startDisplays()
 
 timer = machine.Timer()
-setCurrentMode()
 timer.init(period=CLOCK_UPDATE_INTERVAL, mode=machine.Timer.PERIODIC, callback=timer_callback)
-updateDisplays()
-
 # Main loop
 while True:
     machine.idle() # Delay to prevent excessive CPU usage

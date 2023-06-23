@@ -10,14 +10,25 @@ import Config
 #../Libraries/NeoPixel
 from myNeoPixel import myNeoPixel
 
+_currentMode = None
+_currentTxt = None
 def updateMatrix(mode, color, value):
+    #print(f"updateMatrix({mode}, {color}, {value})")
+    global _currentMode, _currentTxt
+    if _currentMode == mode and mode == Config.PAUSE:
+        return
+    
     if mode == Config.PAUSE:
         matrixPause = matrixHelper.tuple2Matrix(matrixArt.PAUSE_32x32)        
         matrixHelper.lowerColorIntensity(matrixPause, 0.2)
         np.showMatrix(matrixPause)
+        _currentMode = Config.PAUSE
         return
     
-    txt = str(value)        
+    txt = str(value)
+    if _currentTxt == txt:
+        return
+    _currentTxt = txt
     listMatrix = matrixHelper.elementsToMatrix(txt, matrix.MATRIX)
     completeMatrix1 = matrixHelper.appendMatrixHorizontal(listMatrix, 2)
     completeMatrix1 = matrixHelper.alignHorizontal(completeMatrix1, 32, 1)
@@ -46,4 +57,5 @@ if __name__ == "__main__":
     welcomeNeoPixels()
     updateMatrix(Config.PAUSE, (50, 50,  50), 99)
     updateMatrix(Config.TIME, (50, 50,  50), 99)
+    updateMatrix(Config.ROUND, (50, 50,  50), 5)
     updateMatrix(Config.ROUND, (50, 50,  50), 5)

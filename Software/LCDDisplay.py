@@ -36,17 +36,18 @@ def initLCD():
     lcd.move_to(0, 3)
     lcd.putstr("Show  : ")
 
-_secondsMode = None
+_currentData = None
 def updateLCDSeconds(mode, value):
-    global _secondsMode
-    if _secondsMode == Config.PAUSE and mode == Config.PAUSE:
-        return
-    _secondsMode = mode
-    data = " ."
+    global _currentData
     if mode == Config.PAUSE:
         data = "||"
     elif value % 2 == 0:
         data = ". "
+    else:
+        data = " ."
+    if _currentData == data:
+        return
+    _currentData = data
     lcd.move_to(18, 3)
     lcd.putstr(data)
 
