@@ -134,6 +134,7 @@ def startDisplays():
     LCDDisplay.initLCD()
     setCurrentMode()
     updateDisplays()
+    
 startDisplays()
 
 timer = machine.Timer()
