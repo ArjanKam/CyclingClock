@@ -1,7 +1,3 @@
-import sys
-sys.path.append('../Libraries/NeoPixel')
-sys.path.append('../Libraries/General')
-from machine import Pin
 import matrix_16x24 as matrix
 import matrixHelper
 import matrixArt
@@ -12,23 +8,28 @@ from myNeoPixel import myNeoPixel
 
 _currentMode = None
 _currentTxt = None
+_currentColor = None
 def updateMatrix(mode, color, value):
-    #print(f"updateMatrix({mode}, {color}, {value})")
-    global _currentMode, _currentTxt
-    if _currentMode == mode and mode == Config.PAUSE:
+    print(f"updateMatrix({mode}, {color}, {value})")
+    global _currentMode, _currentTxt, _currentColor
+    if _currentMode == mode and mode in {Config.PAUSE, Config.EXIT}:
         return
     
-    if mode == Config.PAUSE:
-        matrixPause = matrixHelper.tuple2Matrix(matrixArt.PAUSE_32x32)        
-        matrixHelper.lowerColorIntensity(matrixPause, 0.2)
-        np.showMatrix(matrixPause)
+    if mode == Config.PAUSE:       
+        np.showMatrix(matrixArt.PAUSE_32x32, 65280)
         _currentMode = Config.PAUSE
+        return
+    elif mode == Config.EXIT:             
+        np.showMatrix(matrixArt.EXIT_32x32, color)
+        _currentMode = Config.EXIT
         return
     
     txt = str(value)
-    if _currentTxt == txt:
+    if _currentTxt == txt and _currentColor == color and _currentMode == mode:
         return
     _currentTxt = txt
+    _currentColor = color
+    _currentMode = mode
     listMatrix = matrixHelper.elementsToMatrix(txt, matrix.MATRIX)
     completeMatrix1 = matrixHelper.appendMatrixHorizontal(listMatrix, 2)
     completeMatrix1 = matrixHelper.alignHorizontal(completeMatrix1, 32, 1)

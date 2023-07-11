@@ -1,8 +1,4 @@
 import machine
-import sys
-sys.path.append('../Libraries/General')
-sys.path.append('../Libraries/Buttons')
-
 from machine import Pin
 from utime import sleep
 import utime
@@ -28,14 +24,15 @@ def infoTime():
 def infoRounds():
     updateDisplays()
 
-
+BEEP_TIMES = {55, 50, 5, 0}
 #init colorSelector
 COLOR_WHITE = (50, 50,  50)
 COLOR_RED   = (100,  0,  0)
 COLOR_BLUE  = (  0,  0,100)
 COLOR_GREEN = (  0,100,  0)
-lst = (COLOR_RED, COLOR_BLUE, COLOR_GREEN, COLOR_WHITE)
-names = ("Rood", "Blauw", "Groen", "Wit")
+COLOR_YELLOW= (100,100,  0)
+lst = (COLOR_RED, COLOR_BLUE, COLOR_GREEN, COLOR_WHITE, COLOR_YELLOW)
+names = ("Rood", "Blauw", "Groen", "Wit", "Geel")
 colorSelector = ListSelector( lst, names, infoColorSelector, infoColorSelector )
 
 timeSelector   = ValueSelector(0, 99, 80, infoTime, infoTime)
@@ -44,20 +41,30 @@ roundsSelector = ValueSelector(0, 99, 3, infoRounds, infoRounds)
 buzzer = Pin(Config.PIN_16, Pin.OUT)
 
 def pressRed():
-    while buttonRed.value() == 0:
-        sleep(0.3)
-    roundsSelector.setAccepted(roundsSelector.getSelected() )
+    global _currentMode
+    if _currentMode == Config.PAUSE:
+        return 
+    print("Red pressed")    
+    if _currentMode == Config.EXIT:
+        setCurrentMode()
+    else:
+        _currentMode = Config.EXIT
+        beep(1)
+    updateDisplays()    
 
 def pressGreen():
+    setCurrentMode()
     while buttonGreen.value() == 0:
         sleep(0.3)
     roundsSelector.setAccepted(roundsSelector.getAccepted() - 1 )
     
-def pressBlue():
-    beep(3)
+def pressBlack():
+    setCurrentMode()
+    while buttonBlack.value() == 0:
+        sleep(0.3)
+    roundsSelector.setAccepted(roundsSelector.getSelected() )
 
 def pressTimeRound(data):
-    print(f"pressTimeRound({data})")
     setCurrentMode()
     updateDisplays()
     
@@ -74,7 +81,7 @@ buttonRound = IRQButton(Config.PIN_27, pressTimeRound, 2, notifyAllChanges = Tru
 
 buttonRed   = IRQButton(Config.PIN_04, pressRed)
 buttonGreen = IRQButton(Config.PIN_03, pressGreen)
-buttonBlue  = IRQButton(Config.PIN_02, pressBlue)
+buttonBlack  = IRQButton(Config.PIN_02, pressBlack)
 
 timeChanger     = RoterySwitch(Config.PIN_06, Config.PIN_07, timeSelector.getPrev, timeSelector.getNext, Config.PIN_05, timeSelector.accept)
 roundsChanger   = RoterySwitch(Config.PIN_09, Config.PIN_10, roundsSelector.getPrev, roundsSelector.getNext, Config.PIN_08, roundsSelector.accept)
@@ -83,8 +90,9 @@ colorChanger    = RoterySwitch(Config.PIN_12, Config.PIN_13, colorSelector.getPr
 _currentMode = Config.PAUSE
 def setCurrentMode():
     global _currentMode
+    sleep(0.1)
     roundSelected = buttonRound.value() == 0
-    timeSelected = buttonTime.value() == 0
+    timeSelected  = buttonTime.value() == 0
     if timeSelected:
         _currentMode = Config.ROUND
     elif roundSelected:
@@ -127,7 +135,10 @@ def timer_callback(timer):
     _prevTime = _currentTime
     newValue = timeSelector.getAccepted() - dt
     timeSelector.setAccepted(newValue)
-
+    if newValue in BEEP_TIMES:
+        beep(3)
+    print(_currentTime, newValue)
+    
 def startDisplays():
     LCDDisplay.welcomeLCD()
     MatrixBoard.welcomeNeoPixels()

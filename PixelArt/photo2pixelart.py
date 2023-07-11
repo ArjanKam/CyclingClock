@@ -2,8 +2,8 @@
 #__usage__ = "To Convert Image pixel data to readable bytes"
 from PIL import Image
 import numpy as np
-FILENAME = 'Pause_32x32.png'
-EXPORT_NAME = 'Pause_32x32.txt'
+FILENAME = 'exit.png'
+EXPORT_NAME = 'exit_32x32.txt'
 i = Image.open(FILENAME)
 iar = np.asarray(i)
 

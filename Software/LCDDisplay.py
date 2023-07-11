@@ -1,5 +1,3 @@
-import sys
-sys.path.append('../Libraries/LCD')
 from pico_i2c_lcd import I2cLcd
 from machine import I2C, Pin
 import Config
@@ -36,15 +34,15 @@ def initLCD():
     lcd.move_to(0, 3)
     lcd.putstr("Show  : ")
 
+DOTS = (". ", " .", "||")
 _currentData = None
 def updateLCDSeconds(mode, value):
     global _currentData
     if mode == Config.PAUSE:
-        data = "||"
-    elif value % 2 == 0:
-        data = ". "
+        data = DOTS[2]
     else:
-        data = " ."
+        data = DOTS[value % 2]
+        
     if _currentData == data:
         return
     _currentData = data

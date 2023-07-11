@@ -1,21 +1,23 @@
 PAUSE = 0
 TIME = 1
 ROUND = 2
+EXIT = 3
 MODEDICT  = {PAUSE: "Pauze",
              TIME: "Time",
-             ROUND: "Round"
+             ROUND: "Round",
+             EXIT: "Exit"
              }
 
-PIN_00 = 00 # LCD sda
-PIN_01 = 01 # LCD scl
-PIN_02 = 02 # Blue
-PIN_03 = 03 # Green
-PIN_04 = 04 # Red
-PIN_05 = 05 #rot 1 - click
-PIN_06 = 06 #rot 1 - S1
-PIN_07 = 07 #rot 1 - S2
-PIN_08 = 08 #rot 2 - click
-PIN_09 = 09 #rot 2 - S1
+PIN_00 =  0 # LCD sda
+PIN_01 =  1 # LCD scl
+PIN_02 =  2 # Blue
+PIN_03 =  3 # Green
+PIN_04 =  4 # Red
+PIN_05 =  5 #rot 1 - click
+PIN_06 =  6 #rot 1 - S1
+PIN_07 =  7 #rot 1 - S2
+PIN_08 =  8 #rot 2 - click
+PIN_09 =  9 #rot 2 - S1
 PIN_10 = 10 #rot 2 - S2
 PIN_11 = 11 #rot 3 - Click
 PIN_12 = 12 #rot 3 - S1
