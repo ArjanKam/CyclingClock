@@ -23,8 +23,11 @@ def infoTime():
     updateDisplays()
 def infoRounds():
     updateDisplays()
+    
+DEFAULT_ROUNDS = 3
+DEFAULT_TIME = 80
+BEEP_TIMES = {0, 5, 30, 35}
 
-BEEP_TIMES = {55, 50, 5, 0}
 #init colorSelector
 COLOR_WHITE = (50, 50,  50)
 COLOR_RED   = (100,  0,  0)
@@ -35,8 +38,8 @@ lst = (COLOR_RED, COLOR_BLUE, COLOR_GREEN, COLOR_WHITE, COLOR_YELLOW)
 names = ("Rood", "Blauw", "Groen", "Wit", "Geel")
 colorSelector = ListSelector( lst, names, infoColorSelector, infoColorSelector )
 
-timeSelector   = ValueSelector(0, 99, 80, infoTime, infoTime)
-roundsSelector = ValueSelector(0, 99, 3, infoRounds, infoRounds)
+timeSelector   = ValueSelector(0, 99, DEFAULT_TIME, infoTime, infoTime)
+roundsSelector = ValueSelector(0, 99, DEFAULT_ROUNDS, infoRounds, infoRounds)
 
 buzzer = Pin(Config.PIN_16, Pin.OUT)
 
@@ -65,6 +68,7 @@ def pressBlack():
     roundsSelector.setAccepted(roundsSelector.getSelected() )
 
 def pressTimeRound(data):
+    selected = roundsSelector.getSelected()    
     setCurrentMode()
     updateDisplays()
     
@@ -110,6 +114,10 @@ def updateDisplays():
     selectedColor = colorSelector.getSelectedName()
     LCDDisplay.updateLCD(acceptedRound, selectedRound, acceptedTime, selectedTime, acceptedColor, selectedColor, txtMode )
     
+    updateMatrix()
+    
+
+def updateMatrix()
     color = colorSelector.getAccepted()
     txt = ""
     if _currentMode == Config.TIME:
@@ -135,7 +143,7 @@ def timer_callback(timer):
     _prevTime = _currentTime
     newValue = timeSelector.getAccepted() - dt
     timeSelector.setAccepted(newValue)
-    if newValue in BEEP_TIMES:
+    if newValue in BEEP_TIMES or newValue in :
         beep(3)
     print(_currentTime, newValue)
     

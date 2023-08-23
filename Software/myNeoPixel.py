@@ -60,12 +60,12 @@ class myNeoPixel():
         color = colorHelper.getColor(color)
         for x,y in lstOfPositions:
             index = self.getIndex(x, y)
-            self._showPixel(index, color, oneByOne)
+            self._showPixel(index, color, now=oneByOne)
         if not oneByOne:
             self._np.write()
 
     #color and position (x,y) in one matrix
-    def showMatrix(self, matrix, color = None):
+    def showMatrix(self, matrix, color = None, inverse = False):
         for y, row in enumerate(matrix):
             if y >= self._height:
                 continue
@@ -73,9 +73,14 @@ class myNeoPixel():
                 if x >= self._width:
                     continue
                 index = self.getIndex(x, y)
+                if inverse and color != None:
+                    if element == 0:
+                        element = color
+                    else:
+                        element = 0
                 if color != None and element != 0:
                     element = color
-                self._showPixel(index, element, False)
+                self._showPixel(index, element, now=False)
         self._np.write()
 
     def clear(self, color = False):

@@ -34,8 +34,7 @@ def updateMatrix(mode, color, value):
     completeMatrix1 = matrixHelper.appendMatrixHorizontal(listMatrix, 2)
     completeMatrix1 = matrixHelper.alignHorizontal(completeMatrix1, 32, 1)
     completeMatrix1 = matrixHelper.alignVertical(completeMatrix1, 32, 1)
-    matrixHelper.changeColor(completeMatrix1, 1, color)
-    np.showMatrix(completeMatrix1)
+    np.showMatrix(completeMatrix1, color)
     
 def welcomeNeoPixels():
     np.openingBox(0.03)
